@@ -1,4 +1,4 @@
-package com.bandwidth.user_service;
+package com.bandwidth.userservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
