@@ -1,10 +1,15 @@
 package com.bandwidth.userservice.service;
 
+import com.bandwidth.userservice.dto.UserCreateRequestDTO;
+import com.bandwidth.userservice.dto.UserResponseDTO;
+import com.bandwidth.userservice.dto.UserUpdateRequestDTO;
 import com.bandwidth.userservice.model.User;
 import com.bandwidth.userservice.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.Optional;
 
@@ -24,26 +29,75 @@ public class UserService {
     /****************************************************************************************/
 
     @Transactional
-    public User createUser(User user) {
+    public UserResponseDTO createUser(UserCreateRequestDTO requestDTO) {
         // VALIDATION: Check for unique email and username ---
-        userRepository.findByEmail(user.getEmail()).ifPresent(u -> {
-            throw new DuplicateUserException("email", user.getEmail());
+        userRepository.findByEmail(requestDTO.getEmail()).ifPresent(u -> {
+            throw new DuplicateUserException("email", requestDTO.getEmail());
         });
 
-        userRepository.findByUsername(user.getUsername()).ifPresent(u -> {
-            throw new DuplicateUserException("username", user.getUsername());
+        userRepository.findByUsername(requestDTO.getUsername()).ifPresent(u -> {
+            throw new DuplicateUserException("username", requestDTO.getUsername());
         });
         // --------------------------------------------------------
 
-        // TODO: In a later step, we will use a dedicated PasswordEncoder here to hash the user.getPasswordHash()
-
+        requestDTO.setPassword(passwordEncoder.encode(requestDTO.getPassword()));
         // 1. Save the User entity to the database
-        User savedUser = userRepository.save(user);
+        User savedUser = userRepository.save(convertDtoToEntity(requestDTO));
 
         // 2. Publish the event to notify other services (e.g., Task Service)
         userKafkaProducerService.sendUserCreatedEvent(savedUser);
 
-        return savedUser;
+        return UserResponseDTO.fromEntity(savedUser);
+    }
+
+    public UserResponseDTO getUser(@PathVariable Long id){
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id));
+        return UserResponseDTO.fromEntity(user);
+    }
+
+    /****************************************************************************************/
+
+    @Transactional
+    public UserResponseDTO updateUser(Long id, UserUpdateRequestDTO requestDTO) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id));
+        if (requestDTO.isPasswordChangeRequested()) {
+            // A. Verify the current password
+            boolean isCurrentPasswordValid = passwordEncoder.matches(
+                    requestDTO.getCurrentPassword(),
+                    user.getPasswordHash()
+            );
+
+            if (!isCurrentPasswordValid) {
+                throw new InvalidCredentialsException("The provided current password is not correct.");
+            }
+
+            String newHashedPassword = passwordEncoder.encode(requestDTO.getNewPassword());
+            user.setPasswordHash(newHashedPassword);
+        }
+
+        // Update Email
+        if (requestDTO.getEmail() != null && !requestDTO.getEmail().isBlank() && !requestDTO.getEmail().equals(user.getEmail())) {
+            // Check if the new email is already in use
+            userRepository.findByEmail(requestDTO.getEmail()).ifPresent(u -> {
+                throw new DuplicateUserException("email", requestDTO.getEmail());
+            });
+            user.setEmail(requestDTO.getEmail());
+        }
+
+        // Update Username
+        if (requestDTO.getUsername() != null && !requestDTO.getUsername().isBlank() && !requestDTO.getUsername().equals(user.getUsername())) {
+            userRepository.findByUsername(requestDTO.getUsername()).ifPresent(u -> {
+                throw new DuplicateUserException("username", requestDTO.getUsername());
+            });
+            user.setUsername(requestDTO.getUsername());
+        }
+        User savedUser = userRepository.save(user);
+
+        // publish a 'UserUpdatedEvent' here.
+
+        return UserResponseDTO.fromEntity(savedUser);
     }
 
     /****************************************************************************************/
@@ -64,5 +118,18 @@ public class UserService {
         return false;
     }
 
-    // You can add methods for findById, findAll, etc.
+    /****************************************************************************************/
+
+    /** Utils **/
+
+    private User convertDtoToEntity(UserCreateRequestDTO dto) {
+        User user = new User();
+        user.setEmail(dto.getEmail());
+        user.setUsername(dto.getUsername());
+        String hashedPassword = passwordEncoder.encode(dto.getPassword());
+        user.setPasswordHash(hashedPassword);
+        return user;
+    }
+
+
 }

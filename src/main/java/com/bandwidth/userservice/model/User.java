@@ -10,8 +10,8 @@ import lombok.AllArgsConstructor;
  * and will be joined to the 'task' table via the 'id' (userId) primary key.
  */
 @Entity
-@Table(name = "bandwidth_user") // Avoid using 'user' as a table name as it can be a reserved keyword in some databases
-@Data // Lombok annotation for getters, setters, toString, equals, and hashCode
+@Table(name = "bandwidth_user")
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
