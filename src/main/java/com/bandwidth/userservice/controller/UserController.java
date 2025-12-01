@@ -1,5 +1,8 @@
 package com.bandwidth.userservice.controller;
 
+import com.bandwidth.userservice.dto.UserCreateRequestDTO;
+import com.bandwidth.userservice.dto.UserResponseDTO;
+import com.bandwidth.userservice.dto.UserUpdateRequestDTO;
 import com.bandwidth.userservice.model.User;
 import com.bandwidth.userservice.service.DuplicateUserException;
 import com.bandwidth.userservice.service.UserService;
@@ -23,10 +26,26 @@ public class UserController {
     /****************************************************************************************/
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        User savedUser = userService.createUser(user);
+    public ResponseEntity<UserResponseDTO> createUser(@RequestBody UserCreateRequestDTO requestDTO) {
+        UserResponseDTO responseDTO = userService.createUser(requestDTO);
         // Returns the created user object with a 201 Created status
-        return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+        return new ResponseEntity<>(responseDTO, HttpStatus.CREATED);
+    }
+
+    /****************************************************************************************/
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponseDTO> getUser(@PathVariable Long id){
+        UserResponseDTO responseDTO = userService.getUser(id);
+        return ResponseEntity.ok(responseDTO);
+    }
+
+    /****************************************************************************************/
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @RequestBody UserUpdateRequestDTO requestDTO){
+        UserResponseDTO responseDTO = userService.updateUser(id, requestDTO);
+        return ResponseEntity.ok(responseDTO);
     }
 
     /****************************************************************************************/
@@ -36,7 +55,7 @@ public class UserController {
         boolean wasDeleted = userService.deleteUser(id);
 
         if (wasDeleted) {
-            // Return 204 No Content for a successful deletion (standard REST practice)
+            // Return 204 No Content for a successful deletion
             return ResponseEntity.noContent().build();
         } else {
             // Return 404 Not Found if the user ID doesn't exist
@@ -44,9 +63,15 @@ public class UserController {
         }
     }
 
+    /****************************************************************************************/
+
+    /** Utils **/
+
     @ExceptionHandler(DuplicateUserException.class)
     public ResponseEntity<String> handleDuplicateUserException(DuplicateUserException ex) {
         // HTTP 409 is the status code for a resource conflict (e.g., duplicate email)
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
+
+
 }
