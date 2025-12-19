@@ -1,11 +1,13 @@
 package com.bandwidth.userservice.controller;
 
 import com.bandwidth.userservice.dto.UserCreateRequestDTO;
+import com.bandwidth.userservice.dto.UserCredentialDTO;
 import com.bandwidth.userservice.dto.UserResponseDTO;
 import com.bandwidth.userservice.dto.UserUpdateRequestDTO;
 import com.bandwidth.userservice.model.User;
 import com.bandwidth.userservice.service.DuplicateUserException;
 import com.bandwidth.userservice.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -69,8 +71,19 @@ public class UserController {
 
     @ExceptionHandler(DuplicateUserException.class)
     public ResponseEntity<String> handleDuplicateUserException(DuplicateUserException ex) {
-        // HTTP 409 is the status code for a resource conflict (e.g., duplicate email)
+        // HTTP 409 is the status code for a resource conflict (e.g., duplicate username)
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    @GetMapping("/internal/credentials")
+    public ResponseEntity<UserCredentialDTO> getCredentialsByUsername(@RequestHeader("X-Internal-Secret") String token, @RequestParam String username) {
+        UserCredentialDTO credentials = userService.getCredentialsByUsername(username);
+        if (credentials == null) {
+            // Return 404 if user not found, Spring Security will handle the failure
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(credentials);
     }
 
 

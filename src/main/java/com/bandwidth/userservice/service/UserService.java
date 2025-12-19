@@ -1,6 +1,7 @@
 package com.bandwidth.userservice.service;
 
 import com.bandwidth.userservice.dto.UserCreateRequestDTO;
+import com.bandwidth.userservice.dto.UserCredentialDTO;
 import com.bandwidth.userservice.dto.UserResponseDTO;
 import com.bandwidth.userservice.dto.UserUpdateRequestDTO;
 import com.bandwidth.userservice.model.User;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -30,17 +32,17 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO createUser(UserCreateRequestDTO requestDTO) {
-        // VALIDATION: Check for unique email and username ---
-        userRepository.findByEmail(requestDTO.getEmail()).ifPresent(u -> {
-            throw new DuplicateUserException("email", requestDTO.getEmail());
-        });
-
+        // VALIDATION: Check for unique username and username ---
         userRepository.findByUsername(requestDTO.getUsername()).ifPresent(u -> {
             throw new DuplicateUserException("username", requestDTO.getUsername());
         });
+
+        userRepository.findByEmail(requestDTO.getEmail()).ifPresent(u -> {
+            throw new DuplicateUserException("email", requestDTO.getEmail());
+        });
         // --------------------------------------------------------
 
-        requestDTO.setPassword(passwordEncoder.encode(requestDTO.getPassword()));
+        //requestDTO.setPassword(passwordEncoder.encode(requestDTO.getPassword()));
         // 1. Save the User entity to the database
         User savedUser = userRepository.save(convertDtoToEntity(requestDTO));
 
@@ -77,13 +79,13 @@ public class UserService {
             user.setPasswordHash(newHashedPassword);
         }
 
-        // Update Email
-        if (requestDTO.getEmail() != null && !requestDTO.getEmail().isBlank() && !requestDTO.getEmail().equals(user.getEmail())) {
-            // Check if the new email is already in use
-            userRepository.findByEmail(requestDTO.getEmail()).ifPresent(u -> {
-                throw new DuplicateUserException("email", requestDTO.getEmail());
+        // Update Username
+        if (requestDTO.getUsername() != null && !requestDTO.getUsername().isBlank() && !requestDTO.getUsername().equals(user.getUsername())) {
+            // Check if the new username is already in use
+            userRepository.findByUsername(requestDTO.getUsername()).ifPresent(u -> {
+                throw new DuplicateUserException("username", requestDTO.getUsername());
             });
-            user.setEmail(requestDTO.getEmail());
+            user.setUsername(requestDTO.getUsername());
         }
 
         // Update Username
@@ -132,4 +134,15 @@ public class UserService {
     }
 
 
+    public UserCredentialDTO getCredentialsByUsername(String username) {
+        // 1. Use findByUsername and handle absence gracefully (return null)
+        return userRepository.findByUsername(username)
+                .map(user -> UserCredentialDTO.builder()
+                        .id(user.getId())
+                        .username(user.getUsername())
+                        .hashedPassword(user.getPasswordHash())
+                        .roles(List.of("ROLE_USER"))
+                        .build())
+                        .orElse(null);
+    }
 }
