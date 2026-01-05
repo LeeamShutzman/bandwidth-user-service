@@ -9,4 +9,8 @@ public class DuplicateUserException extends RuntimeException {
     public DuplicateUserException(String field, String value) {
         super(String.format("User registration failed: The %s '%s' is already in use.", field, value));
     }
+
+    public DuplicateUserException(String message) {
+        super(message);
+    }
 }

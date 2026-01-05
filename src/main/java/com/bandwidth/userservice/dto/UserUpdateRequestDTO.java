@@ -2,11 +2,15 @@ package com.bandwidth.userservice.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserUpdateRequestDTO implements Serializable {
     @Email(message = "Email must be valid.")
     private String email;
