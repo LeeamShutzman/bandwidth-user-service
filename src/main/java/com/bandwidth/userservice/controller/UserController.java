@@ -7,6 +7,7 @@ import com.bandwidth.userservice.dto.UserUpdateRequestDTO;
 import com.bandwidth.userservice.model.User;
 import com.bandwidth.userservice.service.DuplicateUserException;
 import com.bandwidth.userservice.service.UserService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -86,5 +87,9 @@ public class UserController {
         return ResponseEntity.ok(credentials);
     }
 
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<String> handleEntityNotFoundException(EntityNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
 
 }

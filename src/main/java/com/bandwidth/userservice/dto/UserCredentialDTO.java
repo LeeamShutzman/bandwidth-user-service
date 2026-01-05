@@ -8,6 +8,7 @@ import lombok.Data;
 
 @Data
 @Builder
+@AllArgsConstructor
 public class UserCredentialDTO {
     private Long id;
     private String username;

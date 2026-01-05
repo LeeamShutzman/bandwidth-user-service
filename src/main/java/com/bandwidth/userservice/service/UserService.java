@@ -89,11 +89,11 @@ public class UserService {
         }
 
         // Update Username
-        if (requestDTO.getUsername() != null && !requestDTO.getUsername().isBlank() && !requestDTO.getUsername().equals(user.getUsername())) {
-            userRepository.findByUsername(requestDTO.getUsername()).ifPresent(u -> {
-                throw new DuplicateUserException("username", requestDTO.getUsername());
+        if (requestDTO.getEmail() != null && !requestDTO.getEmail().isBlank() && !requestDTO.getEmail().equals(user.getEmail())) {
+            userRepository.findByEmail(requestDTO.getEmail()).ifPresent(u -> {
+                throw new DuplicateUserException("email", requestDTO.getEmail());
             });
-            user.setUsername(requestDTO.getUsername());
+            user.setEmail(requestDTO.getEmail());
         }
         User savedUser = userRepository.save(user);
 
